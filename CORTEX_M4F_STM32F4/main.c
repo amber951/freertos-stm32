@@ -52,7 +52,7 @@ static int states[] = {TRAFFIC_RED, TRAFFIC_YELLOW, TRAFFIC_GREEN,
 							TRAFFIC_YELLOW};
  char text[11][20]={"type:",'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
 
-int count_line=1;
+int count_line=0;
 uint16_t my_color=0xffff;
 void RCC_Configuration(void)
 {
@@ -226,35 +226,32 @@ static void ButtonEventTask(void *pvParameters)
 static void usart_text(void *pvParameters)
 {
 	
-while(1)
-
-{
-
-int i,j;
-for(i=0;i<=11;i++)
-{
-	for(j=0;j<=13;j++)
-	{ char t[1]={0};
-		   while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
-		    t[0]=USART_ReceiveData(USART1);
-			 strncat(text[i],t,1);
+	while(1){
+		int j;
+		for(j=0;j<=13;j++){
+		 	char t[1]={0};
+	
+		    while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
+		    
+			t[0]=USART_ReceiveData(USART1);
+			 strncat(text[count_line],t,1);
 			 my_color-=0X00ff;
 			 LCD_SetTextColor(my_color);
-            LCD_DisplayStringLine(LINE(i+1),text[i]);	
-	}
+             LCD_DisplayStringLine(LINE(count_line+1),text[count_line]);	
+			
+						   }
+		
+				char *ptr=text[count_line];
+                 while(*ptr!='\0')
+                	*(ptr++)='\0';
+ 
+		++count_line;
+		if(count_line==11)	{	
+			LCD_Clear(0x0000);	
+			count_line=0;
+							}
+			}
 }
-LCD_Clear(0x0000);
-int count=0;
-	while(count<=11)
-	{
-	char *ptr=text[count];
-	while(*ptr!='\0')
-	*(ptr++)='\0';
-	count++;
-	}
-}
-}
-
 //Main Function
 int main(void)
 {
