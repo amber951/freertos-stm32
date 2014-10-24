@@ -280,17 +280,7 @@ int main(void)
 	LCD_DisplayStringLine(LCD_LINE_1,text);
 	xTaskCreate(usart_text, (char *) "Draw Graph Task", 256,
 		             NULL, tskIDLE_PRIORITY + 2, NULL);
-/*
-	xTaskCreate(ChgTrafficLightTask, "Traffic Light Task", 256, 
-			( void * ) NULL, tskIDLE_PRIORITY + 1, NULL);
-
-	xTaskCreate(ButtonEventTask, (char *) "Button Event Task", 256,
-		   	NULL, tskIDLE_PRIORITY + 1, NULL);
-
-	xTaskCreate(DrawGraphTask, (char *) "Draw Graph Task", 256,
-		   	NULL, tskIDLE_PRIORITY + 2, NULL);
-
-*/
+	
 	RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_RNG, ENABLE);
         RNG_Cmd(ENABLE);
 
