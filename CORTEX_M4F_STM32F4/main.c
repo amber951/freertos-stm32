@@ -50,7 +50,58 @@ static int traffic_index = 0;
 static int button_change_traffic = 0;
 static int states[] = {TRAFFIC_RED, TRAFFIC_YELLOW, TRAFFIC_GREEN, 
 							TRAFFIC_YELLOW};
+ char text[11][20]={"type:",0,0,0,0,0,0,0,0,0,0,0};
 
+int count_line=1;
+uint16_t my_color=0xffff;
+void RCC_Configuration(void)
+{
+	/* --------------------------- System Clocks Configuration -----------------*/
+	 /* USART1 clock enable */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+	/* GPIOA clock enable */
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+}
+
+void GPIO_Configuration(void)
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+/*-------------------------- GPIO Configuration ----------------------------*/
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF; 
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+	 /* Connect USART pins to AF */
+   	GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);   // USART1_TX
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);  // USART1_RX
+}
+
+
+void USART1_Configuration(void)
+{
+	USART_InitTypeDef USART_InitStructure;
+	USART_InitStructure.USART_BaudRate = 115200; // 設定 USART 包率 (每秒位元數) 為 115200
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;// 設定 USART 傳輸的資料位元為 8
+	USART_InitStructure.USART_StopBits = USART_StopBits_1; // 設定 USART 停止位元為 1
+	USART_InitStructure.USART_Parity = USART_Parity_No;// 不使用同位元檢查
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;// 不使用流量控制
+	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;// 設定 USART 模式為 Rx (接收) 、 Tx (傳送)
+	USART_Init(USART1, &USART_InitStructure);// 套用以上 USART 設置，並初始化UART1
+	USART_Cmd(USART1, ENABLE);
+}
+
+void USART1_puts(char* s)
+{
+		    while(*s) {
+			  while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+			        USART_SendData(USART1, *s);
+					 s++;																							
+		  	}
+}
+
+ 
 void
 prvInit()
 {
@@ -172,10 +223,46 @@ static void ButtonEventTask(void *pvParameters)
 	}
 }
 
+static void usart_text(void *pvParameters)
+{
+	
+while(1)
+
+{
+
+int i,j;
+for(i=0;i<=11;i++)
+{
+	for(j=0;j<=13;j++)
+	{ char t[1]={0};
+		   while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
+		    t[0]=USART_ReceiveData(USART1);
+			 strncat(text[i],t,1);
+			 my_color-=0X00ff;
+			 LCD_SetTextColor(my_color);
+            LCD_DisplayStringLine(LINE(i+1),text[i]);	
+	}
+}
+LCD_Clear(0x0000);
+int count=0;
+	while(count<=11)
+	{
+	char *ptr=text[count];
+	while(*ptr!='\0')
+	*(ptr++)='\0';
+	count++;
+	}
+}
+}
+
 //Main Function
 int main(void)
 {
-
+	RCC_Configuration();
+	GPIO_Configuration();
+	USART1_Configuration();
+	LCD_SetColors(0x1188, 0x0000);
+	LCD_SetFont(&Font8x8);
 	t_queue = xQueueCreate(1, sizeof(int));
 	if (!t_queue) {
 		ReportError("Failed to create t_queue");
@@ -189,7 +276,11 @@ int main(void)
 	}
 
 	prvInit();
-
+	
+	LCD_DisplayStringLine(LCD_LINE_1,text);
+	xTaskCreate(usart_text, (char *) "Draw Graph Task", 256,
+		             NULL, tskIDLE_PRIORITY + 2, NULL);
+/*
 	xTaskCreate(ChgTrafficLightTask, "Traffic Light Task", 256, 
 			( void * ) NULL, tskIDLE_PRIORITY + 1, NULL);
 
@@ -199,7 +290,7 @@ int main(void)
 	xTaskCreate(DrawGraphTask, (char *) "Draw Graph Task", 256,
 		   	NULL, tskIDLE_PRIORITY + 2, NULL);
 
-
+*/
 	RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_RNG, ENABLE);
         RNG_Cmd(ENABLE);
 
