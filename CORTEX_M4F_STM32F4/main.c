@@ -50,7 +50,7 @@ static int traffic_index = 0;
 static int button_change_traffic = 0;
 static int states[] = {TRAFFIC_RED, TRAFFIC_YELLOW, TRAFFIC_GREEN, 
 							TRAFFIC_YELLOW};
- char text[11][20]={"type:",0,0,0,0,0,0,0,0,0,0,0};
+ char text[11][20]={"type:",'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
 
 int count_line=1;
 uint16_t my_color=0xffff;
