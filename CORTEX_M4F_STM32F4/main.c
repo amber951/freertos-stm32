@@ -52,7 +52,7 @@ static int states[] = {TRAFFIC_RED, TRAFFIC_YELLOW, TRAFFIC_GREEN,
 							TRAFFIC_YELLOW};
  char text[11][20]={"type:",'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
 
-int count_line=0;
+static int count_line=0;
 uint16_t my_color=0xffff;
 void RCC_Configuration(void)
 {
@@ -241,10 +241,9 @@ static void usart_text(void *pvParameters)
 			
 						   }
 		
-				char *ptr=text[count_line];
-                 while(*ptr!='\0')
-                	*(ptr++)='\0';
  
+		memset(text[count_line],'\0',13);
+
 		++count_line;
 		if(count_line==11)	{	
 			LCD_Clear(0x0000);	
