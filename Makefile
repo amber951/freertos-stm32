@@ -86,7 +86,8 @@ OBJS += \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery.o \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_sdram.o \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_lcd.o \
-    $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_ioe.o
+    $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_ioe.o\
+$(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_l3gd20.o
 
 # Traffic
 OBJS += $(PWD)/CORTEX_M4F_STM32F4/traffic/draw_graph.o

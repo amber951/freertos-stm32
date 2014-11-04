@@ -461,7 +461,7 @@ static uint8_t L3GD20_SendByte(uint8_t byte)
   return (uint8_t)SPI_I2S_ReceiveData(L3GD20_SPI);
 }
 
-#ifdef USE_DEFAULT_TIMEOUT_CALLBACK
+//#ifdef USE_DEFAULT_TIMEOUT_CALLBACK
 /**
   * @brief  Basic management of the timeout situation.
   * @param  None.
@@ -474,7 +474,7 @@ uint32_t L3GD20_TIMEOUT_UserCallback(void)
   {   
   }
 }
-#endif /* USE_DEFAULT_TIMEOUT_CALLBACK */
+//#endif /* USE_DEFAULT_TIMEOUT_CALLBACK */
 
 /**
   * @}

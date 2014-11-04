@@ -38,14 +38,14 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-
+#include "stm32f429i_discovery_l3gd20.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 xQueueHandle t_queue; /* Traffic light queue. */
 xQueueHandle t_mutex; /* Traffic light mutex. */
-
+static char *itoa(int value, char* result, int base);
 static int traffic_index = 0; 
 static int button_change_traffic = 0;
 static int states[] = {TRAFFIC_RED, TRAFFIC_YELLOW, TRAFFIC_GREEN, 
@@ -54,6 +54,8 @@ static int states[] = {TRAFFIC_RED, TRAFFIC_YELLOW, TRAFFIC_GREEN,
 
 static int count_line=0;
 uint16_t my_color=0xffff;
+static float axes[3] = {0};
+int count = 0;
 void RCC_Configuration(void)
 {
 	/* --------------------------- System Clocks Configuration -----------------*/
@@ -111,6 +113,9 @@ prvInit()
 	LTDC_Cmd( ENABLE );
 
 	LCD_LayerInit();
+	LCD_SetLayer( LCD_BACKGROUND_LAYER );
+	LCD_Clear( LCD_COLOR_BLACK );
+
 	LCD_SetLayer( LCD_FOREGROUND_LAYER );
 	LCD_Clear( LCD_COLOR_BLACK );
 	LCD_SetTextColor( LCD_COLOR_WHITE );
@@ -251,10 +256,65 @@ static void usart_text(void *pvParameters)
 							}
 			}
 }
+static void rr(void)
+{
+	L3GD20_InitTypeDef L3GD20_InitStructure;
+	L3GD20_InitStructure.Power_Mode = L3GD20_MODE_ACTIVE;
+	L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_1;
+	L3GD20_InitStructure.Axes_Enable = L3GD20_AXES_ENABLE;
+	L3GD20_InitStructure.Band_Width = L3GD20_BANDWIDTH_4;
+	L3GD20_InitStructure.BlockData_Update = L3GD20_BlockDataUpdate_Continous;
+	L3GD20_InitStructure.Endianness = L3GD20_BLE_LSB;
+	L3GD20_InitStructure.Full_Scale = L3GD20_FULLSCALE_250;
+	L3GD20_Init(&L3GD20_InitStructure);
+
+	L3GD20_FilterConfigTypeDef L3GD20_FilterStructure;
+	L3GD20_FilterStructure.HighPassFilter_Mode_Selection = L3GD20_HPM_NORMAL_MODE_RES;
+	L3GD20_FilterStructure.HighPassFilter_CutOff_Frequency = L3GD20_HPFCF_0;
+	L3GD20_FilterConfig(&L3GD20_FilterStructure);
+	L3GD20_FilterCmd(L3GD20_HIGHPASSFILTER_ENABLE);
+}
+static void qq(voud)
+{
+uint8_t tmp[6] = {0};
+	int16_t a[3] = {0};
+	uint8_t tmpreg = 0;
+
+	L3GD20_Read(&tmpreg, L3GD20_CTRL_REG4_ADDR, 1);
+	L3GD20_Read(tmp, L3GD20_OUT_X_L_ADDR, 6);
+
+	/* check in the control register 4 the data alignment (Big Endian or Little Endian)*/
+	if (!(tmpreg & 0x40)) {
+		for (int i = 0; i < 3; i++)
+			a[i] = (int16_t)(((uint16_t)tmp[2 * i + 1] << 8) | (uint16_t)tmp[2 * i]);
+	} else {
+		for (int i = 0; i < 3; i++)
+			a[i] = (int16_t)(((uint16_t)tmp[2 * i] << 8) | (uint16_t)tmp[2 * i + 1]);
+	}
+
+	for (int i = 0; i < 3; i++){
+		axes[i] = a[i] / 114.285f;
+//		axes[i] += a[i]*delta / 114.285f;
+	}
+
+	 LCD_DrawFullCircle(100,100+axes[2],20);
+
+}
+
+static void r3d(void *pvParameters)
+{
+
+rr();
+
+while(1)
+	{
+	qq();
+	}
+}
 //Main Function
 int main(void)
 {
-	RCC_Configuration();
+	//RCC_Configurastatic();
 	GPIO_Configuration();
 	USART1_Configuration();
 	LCD_SetColors(0x1188, 0x0000);
@@ -273,9 +333,12 @@ int main(void)
 
 	prvInit();
 	
-	LCD_DisplayStringLine(LCD_LINE_1,text);
-	xTaskCreate(usart_text, (char *) "Draw Graph Task", 256,
+	//LCD_DisplayStringLine(LCD_LINE_1,text);
+	//xTaskCreate(usart_text, (char *) "Draw Graph Task", 256,
+	//	             NULL, tskIDLE_PRIORITY + 2, NULL);
+xTaskCreate(r3d, (char *) "Draw Graph Task", 256,
 		             NULL, tskIDLE_PRIORITY + 2, NULL);
+	
 	
 	RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_RNG, ENABLE);
         RNG_Cmd(ENABLE);
@@ -283,4 +346,31 @@ int main(void)
 	//Call Scheduler
 	vTaskStartScheduler();
 }
+
+
+static char* itoa(int value, char* result, int base)
+{
+	if (base < 2 || base > 36) {
+		*result = '\0';
+		return result;
+	}
+	char *ptr = result, *ptr1 = result, tmp_char;
+	int tmp_value;
+
+	do {
+		tmp_value = value;
+		value /= base;
+		*ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
+	} while (value);
+
+	if (tmp_value < 0) *ptr++ = '-';
+	*ptr-- = '\0';
+	while (ptr1 < ptr) {
+		tmp_char = *ptr;
+		*ptr-- = *ptr1;
+		*ptr1++ = tmp_char;
+	}
+	return result;
+}
+
 
